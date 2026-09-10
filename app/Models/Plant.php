@@ -15,8 +15,11 @@ class Plant extends Model
         'slug',
         'latin_name',
         'family',
+        'botanist',
         'description_short',
         'description_full',
+        'benefits',
+        'origin_distribution',
         'image',
         'is_active',
     ];
