@@ -14,6 +14,9 @@
         <div class="mx-auto flex max-w-[1180px] items-center justify-between px-5 py-4 lg:px-8">
             <a href="{{ route('admin.plants.index') }}" class="font-['Manrope'] text-lg font-extrabold text-[#003f32]">TSTH2 <span class="font-normal text-[#789187]">Admin</span></a>
             <div class="flex items-center gap-4 text-xs font-bold">
+                <!-- Tombol Kelola Kategori Ditambahkan di Sini -->
+                <a href="{{ route('admin.categories.index') }}" class="text-[#557067] hover:text-[#003f32]">Kelola Kategori</a>
+                
                 <a href="{{ route('home') }}" class="text-[#557067] hover:text-[#003f32]">Lihat katalog</a>
                 <form method="POST" action="{{ route('admin.logout') }}">@csrf<button class="text-[#b87900] hover:text-[#003f32]">Keluar</button></form>
             </div>

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PlantController;
 use App\Http\Controllers\AdminPlantController;
+use App\Http\Controllers\AdminCategoryController; // <-- Tambahkan import ini
 
 // Halaman katalog (index)
 Route::get('/', [PlantController::class, 'index'])->name('home');
@@ -14,6 +15,11 @@ Route::get('/admin/login', [AdminPlantController::class, 'login'])->name('admin.
 Route::post('/admin/login', [AdminPlantController::class, 'authenticate'])->name('admin.authenticate');
 
 Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
-	Route::post('/logout', [AdminPlantController::class, 'logout'])->name('logout');
-	Route::resource('plants', AdminPlantController::class)->except(['show']);
+    Route::post('/logout', [AdminPlantController::class, 'logout'])->name('logout');
+    
+    // Route CRUD untuk Tanaman
+    Route::resource('plants', AdminPlantController::class)->except(['show']);
+    
+    // Route CRUD untuk Kategori (Tambahkan di sini)
+    Route::resource('categories', AdminCategoryController::class)->except(['create', 'show', 'destroy']);
 });
