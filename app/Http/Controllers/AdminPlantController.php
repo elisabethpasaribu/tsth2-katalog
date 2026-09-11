@@ -100,12 +100,16 @@ class AdminPlantController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'latin_name' => ['required', 'string', 'max:255'],
             'family' => ['required', 'string', 'max:255'],
-            'botanist' => ['nullable', 'string', 'max:255'],
+            // Semua diubah menjadi required (wajib)
+            'ordo' => ['required', 'string', 'max:255'],
+            'genus' => ['required', 'string', 'max:255'],
+            'botanist' => ['required', 'string', 'max:255'],
             'description_short' => ['required', 'string'],
-            'description_full' => ['nullable', 'string'],
-            'benefits' => ['nullable', 'string'],
-            'origin_distribution' => ['nullable', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'description_full' => ['required', 'string'],
+            'benefits' => ['required', 'string'],
+            'origin_distribution' => ['required', 'string'],
+            // Gambar wajib saat Create (data belum ada), tapi opsional saat Update
+            'image' => [$plant->exists ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 

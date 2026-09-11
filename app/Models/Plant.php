@@ -10,18 +10,20 @@ class Plant extends Model
     use HasFactory;
 
     protected $fillable = [
-        'category_id',
-        'name',
-        'slug',
-        'latin_name',
-        'family',
-        'botanist',
-        'description_short',
-        'description_full',
-        'benefits',
-        'origin_distribution',
-        'image',
-        'is_active',
+        'category_id', 
+    'name', 
+    'slug', 
+    'latin_name', 
+    'family',
+    'ordo',                 // <-- Ordo ditambahkan
+    'genus',                // <-- Genus ditambahkan
+    'botanist',
+    'benefits',
+    'origin_distribution',  // <-- Sesuai dengan phpMyAdmin
+    'description_short', 
+    'description_full', 
+    'image', 
+    'is_active'
     ];
 
     // Relasi: 1 Plant milik 1 Category
