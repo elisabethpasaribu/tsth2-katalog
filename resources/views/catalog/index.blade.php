@@ -1,24 +1,29 @@
 @extends('layouts.app')
 
-@section('title', 'Koleksi Tanaman Herbal Greenhouse TSTH2')
+@section('title', $title ?? 'Katalog Tanaman Herbal TSTH2')
 
 @section('content')
     <header class="mb-10 text-left">
-        <h1 class="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#003f32] sm:text-[40px]">Koleksi Tanaman Herbal Greenhouse TSTH2</h1>
+        <h1 class="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#003f32] sm:text-[40px]">{{ $title ?? 'Koleksi Tanaman Herbal' }}</h1>
         <p class="mt-3 max-w-[800px] text-sm leading-relaxed text-[#49645b]">Pindai & Jelajahi Koleksi Plasma Nutfah Tanaman Obat Indonesia di Taman Sains Teknologi Herbal dan Hortikultura.</p>
     </header>
 
+    @php
+        // Menentukan nama route saat ini agar form dan filter kategori mengarah ke halaman yang tepat
+        $currentRoute = request()->routeIs('collection') ? 'collection' : 'home';
+    @endphp
+
     <section class="mb-10 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <form method="GET" action="{{ route('home') }}" class="relative w-full xl:max-w-[500px]">
+        <form method="GET" action="{{ route($currentRoute) }}" class="relative w-full xl:max-w-[500px]">
             <svg class="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#164f43]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Cari nama lokal, taksonomi latin, atau khasiat obat..." class="h-11 w-full rounded-full border border-[#e0e9e1] bg-white pl-10 pr-5 text-xs text-[#123b32] shadow-sm placeholder:text-[#8a9991] focus:border-[#00634e] focus:outline-none focus:ring-1 focus:ring-[#00634e]">
         </form>
         
         <nav class="flex flex-wrap gap-2" aria-label="Filter kategori">
             @php($activeCategory = request('category', 'semua'))
-            <a href="{{ route('home', array_filter(array_merge(request()->query(), ['category' => 'semua']))) }}" class="rounded-full px-4 py-2 text-[11px] font-bold transition {{ $activeCategory === 'semua' ? 'bg-[#003f32] text-white' : 'bg-white text-[#38584d] border border-[#e0e9e1] hover:bg-[#e8f3ea]' }}">● Semua Koleksi</a>
+            <a href="{{ route($currentRoute, array_filter(array_merge(request()->query(), ['category' => 'semua']))) }}" class="rounded-full px-4 py-2 text-[11px] font-bold transition {{ $activeCategory === 'semua' ? 'bg-[#003f32] text-white' : 'bg-white text-[#38584d] border border-[#e0e9e1] hover:bg-[#e8f3ea]' }}">● Semua Koleksi</a>
             @foreach ($categories as $cat)
-                <a href="{{ route('home', array_filter(array_merge(request()->query(), ['category' => $cat->slug]))) }}" class="rounded-full bg-white px-4 py-2 text-[11px] font-bold text-[#38584d] border border-[#e0e9e1] transition hover:bg-[#e8f3ea] {{ $activeCategory === $cat->slug ? '!bg-[#003f32] !text-white' : '' }}">{{ $cat->name }}</a>
+                <a href="{{ route($currentRoute, array_filter(array_merge(request()->query(), ['category' => $cat->slug]))) }}" class="rounded-full bg-white px-4 py-2 text-[11px] font-bold text-[#38584d] border border-[#e0e9e1] transition hover:bg-[#e8f3ea] {{ $activeCategory === $cat->slug ? '!bg-[#003f32] !text-white' : '' }}">{{ $cat->name }}</a>
             @endforeach
         </nav>
     </section>
@@ -47,7 +52,7 @@
                 </div>
             </article>
         @empty
-            <div class="col-span-full py-20 text-center text-sm text-[#557067]">Tidak ada tanaman yang cocok. <a href="{{ route('home') }}" class="font-bold text-[#003f32] underline">Reset filter</a></div>
+            <div class="col-span-full py-20 text-center text-sm text-[#557067]">Tidak ada tanaman yang cocok. <a href="{{ route($currentRoute) }}" class="font-bold text-[#003f32] underline">Reset filter</a></div>
         @endforelse
     </section>
 
