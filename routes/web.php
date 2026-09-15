@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminCategoryController; // <-- Tambahkan import ini
 
 // Halaman katalog (index)
 Route::get('/', [PlantController::class, 'index'])->name('home');
+Route::get('/collection', [PlantController::class, 'collection'])->name('collection');
 
 // Halaman detail tanaman (show)
 Route::get('/plant/{plant:slug}', [PlantController::class, 'show'])->name('plant.show');

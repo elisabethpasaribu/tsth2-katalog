@@ -45,8 +45,14 @@ class AdminPlantController extends Controller
 
     public function index(Request $request): View
     {
-        $plants = Plant::with('category')
-            ->when($request->filled('search'), fn ($query) => $query->search($request->string('search')->toString()))
+        $query = Plant::with('category');
+
+        // Filter tambahan untuk admin memilah berdasarkan lokasi
+        if ($request->filled('location') && in_array($request->location, ['greenhouse', 'collection'])) {
+            $query->where('location_type', $request->location);
+        }
+
+        $plants = $query->when($request->filled('search'), fn ($q) => $q->search($request->string('search')->toString()))
             ->latest()
             ->paginate(10)
             ->withQueryString();
@@ -97,10 +103,10 @@ class AdminPlantController extends Controller
     {
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
+            'location_type' => ['required', 'in:greenhouse,collection'], // <-- DITAMBAHKAN AGAR TIDAK DIABAIKAN
             'name' => ['required', 'string', 'max:255'],
             'latin_name' => ['required', 'string', 'max:255'],
             'family' => ['required', 'string', 'max:255'],
-            // Semua diubah menjadi required (wajib)
             'ordo' => ['required', 'string', 'max:255'],
             'genus' => ['required', 'string', 'max:255'],
             'botanist' => ['required', 'string', 'max:255'],
@@ -108,7 +114,6 @@ class AdminPlantController extends Controller
             'description_full' => ['required', 'string'],
             'benefits' => ['required', 'string'],
             'origin_distribution' => ['required', 'string'],
-            // Gambar wajib saat Create (data belum ada), tapi opsional saat Update
             'image' => [$plant->exists ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'is_active' => ['nullable', 'boolean'],
         ]);
