@@ -11,19 +11,20 @@ class Plant extends Model
 
     protected $fillable = [
         'category_id', 
-    'name', 
-    'slug', 
-    'latin_name', 
-    'family',
-    'ordo',                 // <-- Ordo ditambahkan
-    'genus',                // <-- Genus ditambahkan
-    'botanist',
-    'benefits',
-    'origin_distribution',  // <-- Sesuai dengan phpMyAdmin
-    'description_short', 
-    'description_full', 
-    'image', 
-    'is_active'
+        'location_type',      // <-- Tambahkan ini agar data lokasi bisa disimpan
+        'name', 
+        'slug', 
+        'latin_name', 
+        'family',
+        'ordo',              
+        'genus',             
+        'botanist',
+        'benefits',
+        'origin_distribution',  
+        'description_short', 
+        'description_full', 
+        'image', 
+        'is_active'
     ];
 
     // Relasi: 1 Plant milik 1 Category
@@ -35,7 +36,7 @@ class Plant extends Model
     // Scope: filter hanya yang aktif
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $this->where('is_active', true);
     }
 
     // Scope: pencarian
