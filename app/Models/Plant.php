@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Plant extends Model
 {
@@ -12,6 +13,7 @@ class Plant extends Model
     protected $fillable = [
         'category_id', 
         'location_type',      // <-- Tambahkan ini agar data lokasi bisa disimpan
+        'population',
         'name', 
         'slug', 
         'latin_name', 
@@ -20,11 +22,17 @@ class Plant extends Model
         'genus',             
         'botanist',
         'benefits',
+        'origin',              // <-- Tambahkan ini agar data kawasan asal bisa disimpan
         'origin_distribution',  
         'description_short', 
         'description_full', 
         'image', 
         'is_active'
+    ];
+
+    protected $casts = [
+        'population' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     // Relasi: 1 Plant milik 1 Category
@@ -42,11 +50,28 @@ class Plant extends Model
     // Scope: pencarian
     public function scopeSearch($query, $term)
     {
+        $term = Str::lower(trim($term));
+
         return $query->where(function ($q) use ($term) {
             $q->where('name', 'LIKE', "%{$term}%")
               ->orWhere('latin_name', 'LIKE', "%{$term}%")
               ->orWhere('family', 'LIKE', "%{$term}%")
-              ->orWhere('description_short', 'LIKE', "%{$term}%");
+              ->orWhere('description_short', 'LIKE', "%{$term}%")
+              ->orWhere('location_type', 'LIKE', "%{$term}%")
+              ->orWhereHas('category', function ($categoryQuery) use ($term) {
+                  $categoryQuery->where('name', 'LIKE', "%{$term}%")
+                      ->orWhere('slug', 'LIKE', "%{$term}%");
+              });
+
+            if ($term === 'outdoor' || $term === 'koleksi') {
+                $q->orWhere('location_type', 'collection');
+            }
+
+            if (in_array($term, ['aktif', 'active'], true)) {
+                $q->orWhere('is_active', true);
+            } elseif (in_array($term, ['nonaktif', 'inactive'], true)) {
+                $q->orWhere('is_active', false);
+            }
         });
     }
 
