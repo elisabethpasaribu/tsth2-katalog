@@ -5,7 +5,7 @@
 @section('content')
     <header class="mb-10 text-left">
         <h1 class="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#003f32] sm:text-[40px]">{{ $title ?? 'Koleksi Tanaman Herbal' }}</h1>
-        <p class="mt-3 max-w-[800px] text-sm leading-relaxed text-[#49645b]">Pindai & Jelajahi Koleksi Plasma Nutfah Tanaman Obat Indonesia di Taman Sains Teknologi Herbal dan Hortikultura.</p>
+        <p class="mt-3 max-w-[800px] text-sm leading-relaxed text-[#49645b]">Jelajahi Koleksi Plasma Nutfah Tanaman Obat Indonesia di Taman Sains Teknologi Herbal dan Hortikultura.</p>
     </header>
 
     @php
@@ -21,7 +21,7 @@
         
         <nav class="flex flex-wrap gap-2" aria-label="Filter kategori">
             @php($activeCategory = request('category', 'semua'))
-            <a href="{{ route($currentRoute, array_filter(array_merge(request()->query(), ['category' => 'semua']))) }}" class="rounded-full px-4 py-2 text-[11px] font-bold transition {{ $activeCategory === 'semua' ? 'bg-[#003f32] text-white' : 'bg-white text-[#38584d] border border-[#e0e9e1] hover:bg-[#e8f3ea]' }}">● Semua Koleksi</a>
+            <a href="{{ route($currentRoute, array_filter(array_merge(request()->query(), ['category' => 'semua']))) }}" class="rounded-full px-4 py-2 text-[11px] font-bold transition {{ $activeCategory === 'semua' ? 'bg-[#003f32] text-white' : 'bg-white text-[#38584d] border border-[#e0e9e1] hover:bg-[#e8f3ea]' }}"> Semua Koleksi</a>
             @foreach ($categories as $cat)
                 <a href="{{ route($currentRoute, array_filter(array_merge(request()->query(), ['category' => $cat->slug]))) }}" class="rounded-full bg-white px-4 py-2 text-[11px] font-bold text-[#38584d] border border-[#e0e9e1] transition hover:bg-[#e8f3ea] {{ $activeCategory === $cat->slug ? '!bg-[#003f32] !text-white' : '' }}">{{ $cat->name }}</a>
             @endforeach

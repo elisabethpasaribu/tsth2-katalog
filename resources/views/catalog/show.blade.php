@@ -4,14 +4,28 @@
 
 @section('content')
 <div class="mx-auto max-w-6xl px-4 py-8">
+    @php
+        $catalogRoute = $plant->location_type === 'collection' ? 'collection' : 'home';
+        $catalogLabel = $plant->location_type === 'collection' ? 'Koleksi Outdoor' : 'Katalog Greenhouse';
+    @endphp
     
-    <!-- Navigasi Breadcrumb -->
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-4 text-xs font-medium text-gray-500">
-        <div class="flex items-center gap-2">
-            <a href="{{ route('home') }}" class="hover:text-[#003f32] transition">← Kembali ke Katalog Greenhouse</a>
-            <span>&nbsp;&nbsp; Zona {{ $plant->category?->name ?? 'Kategori' }} &nbsp;&nbsp;</span>
-            <span class="font-bold text-gray-900">{{ $plant->name }} ({{ $plant->latin_name }})</span>
-        </div>
+    <!-- Breadcrumb -->
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <nav class="min-w-0 overflow-x-auto text-xs font-medium text-gray-500" aria-label="Breadcrumb">
+            <ol class="flex min-w-max items-center gap-2 whitespace-nowrap">
+                <li><a href="{{ route($catalogRoute) }}" class="text-[#003f32] transition hover:underline">{{ $catalogLabel }}</a></li>
+                <li aria-hidden="true" class="text-gray-300">/</li>
+                <li>
+                    @if ($plant->category)
+                        <a href="{{ route($catalogRoute, ['category' => $plant->category->slug]) }}" class="text-[#003f32] transition hover:underline">{{ $plant->category->name }}</a>
+                    @else
+                        Tanaman Herbal
+                    @endif
+                </li>
+                <li aria-hidden="true" class="text-gray-300">/</li>
+                <li aria-current="page" class="max-w-[280px] truncate font-bold text-gray-900">{{ $plant->name }}</li>
+            </ol>
+        </nav>
         <button class="flex items-center gap-1.5 hover:text-gray-900 transition">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -41,7 +55,7 @@
                     {{ $plant->category?->name ?? 'Tanaman Herbal' }}
                 </span>
                 
-                <h1 class="font-['Manrope'] text-4xl font-extrabold tracking-tight text-[#003f32]">{{ $plant->name }}</h1>
+                <h1 class="font-['Montserrat'] text-4xl font-extrabold tracking-tight text-[#000000]">{{ $plant->name }}</h1>
                 <p class="mb-8 mt-1 text-lg italic text-gray-500">{{ $plant->latin_name }}</p>
                 
                 <!-- Tabel Taksonomi (Grid 3 Kolom) -->
@@ -63,7 +77,7 @@
                         <p class="mt-1 text-sm font-semibold text-gray-800">{{ $plant->genus ?: '-' }}</p>
                     </div>
                     <div>
-                        <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Botanis</p>
+                        <p class="text-[9px] font-bold uppercase tracking-wider text-gray-400">Botanist</p>
                         <p class="mt-1 text-sm font-semibold text-gray-800">{{ $plant->botanist ?: '-' }}</p>
                     </div>
                 </div>
@@ -74,29 +88,27 @@
         <div class="space-y-10">
             
             <section>
-                <h2 class="mb-4 flex items-center gap-2.5 font-['Manrope'] text-lg font-bold text-gray-900">
+                <h2 class="mb-4 flex items-center gap-2.5 font-['Montserrat'] text-lg font-bold text-gray-900">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                   </svg>
                     Deskripsi
                 </h2>
-                <div class="text-[13px] leading-relaxed text-gray-600">
+                <div class="text-[13px] leading-relaxed text-black">
                     {!! nl2br(e($plant->description_full ?: $plant->description_short)) !!}
                 </div>
             </section>
 
             <section>
-                <h2 class="mb-4 flex items-center gap-2.5 font-['Manrope'] text-lg font-bold text-gray-900">
-                    <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <h2 class="mb-4 flex items-center gap-2.5 font-['Montserrat'] text-lg font-bold text-gray-900">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     Manfaat
                 </h2>
-                <ul class="space-y-3 text-[13px] text-gray-600">
+                <ul class="space-y-3 text-[13px] text-black">
                     @if ($plant->benefits)
                         {{-- Memecah teks berdasarkan enter/baris baru --}}
                         @foreach (explode("\n", str_replace("\r", "", $plant->benefits)) as $manfaat)
-                            {{-- Memastikan baris yang kosong tidak ikut ditampilkan --}}
                             @if (trim($manfaat) !== '')
                                 <li class="flex items-start gap-2.5">
                                     <svg class="mt-0.5 h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -118,16 +130,18 @@
             </section>
 
             <section>
-                <h2 class="mb-4 flex items-center gap-2.5 font-['Manrope'] text-lg font-bold text-gray-900">
-                    <svg class="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                <h2 class="mb-4 flex items-center gap-2.5 font-['Montserrat'] text-lg font-bold text-gray-900">
                     Asal Daerah & Sebaran Botani
                 </h2>
-                <div class="rounded-lg border border-green-50 bg-[#f0f8f4] p-5">
-                    <p class="font-medium leading-relaxed text-[#003f32] text-[13px]">
-                        Kawasan Asal: {{ $plant->origin ?? $plant->origin_distribution ?? 'Data belum tersedia.' }}
-                    </p>
+                <div class="rounded-xl border border-green-100 bg-[#f0f8f4] p-5 shadow-sm">
+                    <div class="text-[13px] leading-relaxed text-gray-700">
+                        <p class="font-bold text-[#003f32] mb-1">
+                            Kawasan Asal: {{ $plant->origin ?? 'Data belum tersedia' }}
+                        </p>
+                        <p>
+                            {{ $plant->origin_distribution ?? 'Sebaran botani belum ditambahkan.' }}
+                        </p>
+                    </div>
                 </div>
             </section>
             
