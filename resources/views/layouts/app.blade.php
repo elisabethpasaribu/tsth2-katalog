@@ -44,7 +44,7 @@
                                 Greenhouse
                             </a>
                             <a href="{{ route('collection') }}" class="block px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-[#f2fbf4] hover:text-[#003f32]">
-                                Tanaman Koleksi (Outdoor)
+                                Outdoor
                             </a>
                         </div>
                     </div>
@@ -63,7 +63,7 @@
                             Greenhouse
                         </a>
                         <a href="{{ route('collection') }}" class="block rounded-md px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-[#f2fbf4] hover:text-[#003f32]">
-                            Tanaman Koleksi (Outdoor)
+                            Outdoor
                         </a>
                     </div>
                 </details>
