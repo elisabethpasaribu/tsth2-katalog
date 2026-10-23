@@ -12,8 +12,11 @@
         @endif
         <form method="POST" action="{{ route('admin.authenticate') }}" class="mt-7 space-y-4">
             @csrf
+            <label class="block text-xs font-bold text-[#38584d]">Username
+                <input type="text" name="username" value="{{ old('username') }}" autocomplete="username" class="mt-2 h-11 w-full rounded-lg border-0 bg-[#f5faf5] px-3 text-sm ring-1 ring-[#dbe9dd] focus:ring-2 focus:ring-[#00634e]">
+            </label>
             <label class="block text-xs font-bold text-[#38584d]">Password admin
-                <input type="password" name="password" required autofocus class="mt-2 h-11 w-full rounded-lg border-0 bg-[#f5faf5] px-3 text-sm ring-1 ring-[#dbe9dd] focus:ring-2 focus:ring-[#00634e]">
+                <input type="password" name="password" required autocomplete="current-password" autofocus class="mt-2 h-11 w-full rounded-lg border-0 bg-[#f5faf5] px-3 text-sm ring-1 ring-[#dbe9dd] focus:ring-2 focus:ring-[#00634e]">
             </label>
             <button class="h-11 w-full rounded-lg bg-[#003f32] text-sm font-bold text-white transition hover:bg-[#00634e]">Masuk</button>
         </form>
