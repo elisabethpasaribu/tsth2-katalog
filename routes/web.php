@@ -20,6 +20,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     
     // Route CRUD untuk Tanaman
     Route::resource('plants', AdminPlantController::class)->except(['show']);
+    Route::get('/plants/{plant}/history', [AdminPlantController::class, 'history'])->name('plants.history');
+    Route::post('/plants/{plant}/population', [AdminPlantController::class, 'updatePopulation'])->name('plants.population.update');
     
     // Route CRUD untuk Kategori (Tambahkan di sini)
     Route::resource('categories', AdminCategoryController::class)->except(['create', 'show', 'destroy']);
