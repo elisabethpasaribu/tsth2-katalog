@@ -11,7 +11,19 @@
     </div>
 
     @if (session('success'))
-        <div class="mt-6 rounded-lg bg-[#e8f3df] px-4 py-3 text-xs font-bold text-[#28604d]">{{ session('success') }}</div>
+        <div class="mt-6 flex justify-between items-center rounded-lg bg-[#e8f3df] px-4 py-3 text-xs font-bold text-[#28604d]" role="status">
+            <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m6 2.25a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button type="button" class="ml-4 shrink-0 rounded p-1 transition hover:bg-[#d5e7d7]" aria-label="Tutup notifikasi" onclick="this.closest('[role=status]').remove()">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
     @endif
 
     {{-- RINGKASAN DATA & STATISTIK KOLEKSI --}}
@@ -42,38 +54,49 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-[#718178]">Outdoor / Koleksi</p>
+                        <p class="text-xs font-bold uppercase tracking-wider text-[#718178]">Outdoor</p>
                         <h3 class="mt-1 text-xl font-extrabold text-[#003f32]">{{ $summary['outdoor'] }} <span class="text-xs font-normal text-[#718178]">Jenis Tanaman</span></h3>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- BAGIAN 2: RINGKASAN PER KATEGORI (GRID RESPONSIF) --}}
+        {{-- BAGIAN 2: RINGKASAN PER KATEGORI --}}
         <div class="rounded-2xl border border-[#dbe9dd] bg-white p-5 shadow-[0_5px_18px_rgba(0,63,50,.05)]">
             <h2 class="text-xs font-bold uppercase tracking-wider text-[#718178]">Kategori Tanaman</h2>
 
-            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div class="mt-6 flex gap-6 overflow-x-auto pb-2">
                 @forelse($categorySummary as $item)
-                    <div class="group relative flex flex-col justify-between rounded-xl border border-[#dbe9dd] bg-white p-4 transition-all duration-200 hover:border-[#00634e] hover:shadow-md">
-                        <div>
-                            <h3 class="mt-3 font-bold text-[#003f32] truncate text-sm" title="{{ $item->category?->name ?? 'Tanpa kategori' }}">
-                                {{ $item->category?->name ?? 'Tanpa kategori' }}
-                            </h3>
-                        </div>
-                        <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-[#718178]">
-                            <span>{{ $item->plant_count }} jenis</span>
-                            <span class="font-semibold text-[#b87900]">{{ number_format($item->population_total, 0, ',', '.') }} populasi</span>
-                        </div>
-                    </div>
+                    @php
+                        $selectedCategoryIds = array_map('strval', (array) request('category', []));
+                        $categoryIsSelected = in_array((string) $item->category_id, $selectedCategoryIds, true);
+                        $categoryUrlParameters = request()->except('category');
+                        if ($item->category && ! $categoryIsSelected) {
+                            $categoryUrlParameters['category'] = [$item->category_id];
+                        }
+                        $categoryUrl = route('admin.plants.index', $categoryUrlParameters);
+                    @endphp
+                    <a href="{{ $categoryUrl }}" class="group flex min-h-[152px] w-[288px] shrink-0 flex-col justify-between rounded-2xl border border-[#dbe9dd] bg-white p-6 transition-all duration-200 hover:border-[#00634e] hover:shadow-md">
+
+                        {{-- Judul Kategori --}}
+                        <h3 class="truncate text-xl font-bold text-[#003f32]" title="{{ $item->category?->name ?? 'Tanpa kategori' }}">
+                            {{ $item->category?->name ?? 'Tanpa kategori' }}
+                        </h3>
+
+                        {{-- Info Jumlah (Teks jenis dan populasi dipisah sejauh mungkin ke kiri dan kanan) --}}
+
+<div class="mt-5 flex flex-col gap-1 text-base">
+    <span class="text-[#718178]">{{ $item->plant_count }} jenis</span>
+    <span class="font-semibold text-[#b87900]">{{ number_format($item->population_total, 0, ',', '.') }} populasi</span>
+</div>
+                    </a>
                 @empty
-                    <div class="col-span-full py-4 text-center text-xs text-[#718178]">Belum ada data kategori.</div>
+                    <div class="w-full py-4 text-center text-xs text-[#718178]">
+                        Belum ada data kategori.
+                    </div>
                 @endforelse
             </div>
         </div>
-
-    </div>
-
     {{-- SEARCH BAR, FILTER, & TOMBOL TAMBAH--}}
     <div class="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {{-- Search Bar & Filter Dropdown --}}
@@ -99,7 +122,7 @@
             @endphp
 
             <div class="relative shrink-0 sm:w-56">
-                <button type="button" onclick="toggleDropdown('dropdown-filter-category')" class="flex h-10 w-full items-center justify-between rounded-lg bg-white px-4 text-sm font-bold text-[#557067] shadow-sm ring-1 ring-[#dbe9dd] transition hover:text-[#003f32] focus:outline-none focus:ring-2 focus:ring-[#00634e]">
+                <button type="button" onclick="toggleDropdown(event, 'dropdown-filter-category')" class="flex h-10 w-full items-center justify-between rounded-lg bg-white px-4 text-sm font-bold text-[#557067] shadow-sm ring-1 ring-[#dbe9dd] transition hover:text-[#003f32] focus:outline-none focus:ring-2 focus:ring-[#00634e]">
                     <span class="truncate text-left" title="{{ $categoryButtonLabel }}">{{ $categoryButtonLabel }}</span>
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
@@ -124,7 +147,7 @@
             </div>
 
             <div class="relative shrink-0 sm:w-48">
-                <button type="button" onclick="toggleDropdown('dropdown-filter-status')" class="flex h-10 w-full items-center justify-between rounded-lg bg-white px-4 text-sm font-bold text-[#557067] shadow-sm ring-1 ring-[#dbe9dd] transition hover:text-[#003f32] focus:outline-none focus:ring-2 focus:ring-[#00634e]">
+                <button type="button" onclick="toggleDropdown(event, 'dropdown-filter-status')" class="flex h-10 w-full items-center justify-between rounded-lg bg-white px-4 text-sm font-bold text-[#557067] shadow-sm ring-1 ring-[#dbe9dd] transition hover:text-[#003f32] focus:outline-none focus:ring-2 focus:ring-[#00634e]">
                     <span>{{ $statusButtonLabel }}</span>
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
@@ -172,7 +195,7 @@
                 <tr>
                     {{-- 1. Kolom Tanaman --}}
                     <th class="relative px-5 py-4">
-                        <button onclick="toggleDropdown('dropdown-name')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                        <button type="button" onclick="toggleDropdown(event, 'dropdown-name')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Tanaman</span>
                             <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'name' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -186,7 +209,7 @@
 
                     {{-- 2. Kolom Kategori --}}
                     <th class="relative px-5 py-4">
-                        <button onclick="toggleDropdown('dropdown-category')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                        <button type="button" onclick="toggleDropdown(event, 'dropdown-category')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Kategori</span>
                             <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'category' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -200,7 +223,7 @@
 
                     {{-- 3. Kolom Lokasi --}}
                     <th class="relative px-5 py-4">
-                        <button onclick="toggleDropdown('dropdown-location')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                        <button type="button" onclick="toggleDropdown(event, 'dropdown-location')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Lokasi</span>
                             <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'location' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -215,7 +238,7 @@
                     {{-- 4. Kolom Populasi --}}
                     <th class="relative px-5 py-4 text-right">
                         <div class="flex items-center justify-end">
-                            <button onclick="toggleDropdown('dropdown-population')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                            <button type="button" onclick="toggleDropdown(event, 'dropdown-population')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                                 <span>Jumlah populasi</span>
                                 <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'population' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
                                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -230,7 +253,7 @@
 
                     {{-- 5. Kolom Status --}}
                     <th class="relative px-5 py-4">
-                        <button onclick="toggleDropdown('dropdown-status')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                        <button type="button" onclick="toggleDropdown(event, 'dropdown-status')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Status</span>
                             <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'status' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
                                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
@@ -263,13 +286,29 @@
                     </td>
                     <td class="px-5 py-4 text-[#557067]">{{ $plant->category?->name }}</td>
                     <td class="px-5 py-4">
-                        @if($plant->location_type === 'greenhouse')
+                        @if($plant->location_type === 'both')
+                            <span class="rounded bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-800">Greenhouse & Outdoor</span>
+                        @elseif($plant->location_type === 'greenhouse')
                             <span class="rounded bg-green-100 px-2 py-1 text-[10px] font-bold text-green-800">Greenhouse</span>
                         @else
                             <span class="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800">Outdoor</span>
                         @endif
                     </td>
-                    <td class="px-5 py-4 text-right text-[#557067]">{{ $plant->population !== null ? number_format($plant->population, 0, ',', '.') : '-' }}</td>
+                    <td class="px-5 py-4 text-right text-[#557067]">
+                        <div class="flex items-center justify-end gap-3 whitespace-nowrap">
+                            <span class="text-right leading-5">
+                                @if($plant->location_type === 'both')
+                                    <span class="block tabular-nums">G: {{ number_format((int) ($plant->greenhouse_population ?? 0), 0, ',', '.') }}</span>
+                                    <span class="block tabular-nums">O: {{ number_format((int) ($plant->outdoor_population ?? 0), 0, ',', '.') }}</span>
+                                @elseif($plant->location_type === 'greenhouse')
+                                    <span class="block tabular-nums">{{ number_format((int) ($plant->greenhouse_population ?? 0), 0, ',', '.') }}</span>
+                                @else
+                                    <span class="block tabular-nums">{{ number_format((int) ($plant->outdoor_population ?? 0), 0, ',', '.') }}</span>
+                                @endif
+                            </span>
+                            <a href="{{ route('admin.plants.history', $plant) }}" class="inline-flex items-center rounded-md border border-[#dbe9dd] px-2 py-1 text-xs font-semibold text-[#00634e] hover:bg-[#f6fbf6] hover:text-[#003f32]">Riwayat <span class="ml-1" aria-hidden="true">→</span></a>
+                        </div>
+                    </td>
                     <td class="px-5 py-4">
                         <span class="rounded-full px-2.5 py-1 text-[10px] font-bold {{ $plant->is_active ? 'bg-[#e8f3df] text-[#28604d]' : 'bg-[#f1eeee] text-[#866464]' }}">
                             {{ $plant->is_active ? 'Aktif' : 'Nonaktif' }}
@@ -279,7 +318,7 @@
                         <div class="flex justify-end gap-3 font-bold">
                             <a href="{{ route('admin.plants.edit', $plant) }}" class="text-[#00634e] hover:text-[#b87900]">Edit</a>
                             <form method="POST" action="{{ route('admin.plants.destroy', $plant) }}" onsubmit="return confirm('Hapus tanaman ini?')">
-                                @csrf 
+                                @csrf
                                 @method('DELETE')
                                 <button class="text-[#b04d3e] hover:text-[#7d2318]">Hapus</button>
                             </form>
@@ -292,12 +331,12 @@
             </tbody>
         </table>
     </div>
-    
+
     <div class="mt-6">{{ $plants->links() }}</div>
 
     <script>
-        function toggleDropdown(dropdownId) {
-            event.stopPropagation();
+        function toggleDropdown(clickEvent, dropdownId) {
+            clickEvent.stopPropagation();
             document.querySelectorAll('.sort-dropdown').forEach(el => {
                 if (el.id !== dropdownId) el.classList.add('hidden');
             });
@@ -316,6 +355,11 @@
         document.addEventListener("DOMContentLoaded", function () {
             const allCategories = document.getElementById('all-categories');
             const categoryOptions = document.querySelectorAll('.category-option');
+            const categoryDropdown = document.getElementById('dropdown-filter-category');
+
+            categoryDropdown?.addEventListener('click', function (clickEvent) {
+                clickEvent.stopPropagation();
+            });
 
             if (allCategories) {
                 allCategories.addEventListener('change', function () {

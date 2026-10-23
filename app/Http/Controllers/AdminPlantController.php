@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Plant;
+use App\Models\PlantPopulationHistory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminPlantController extends Controller
@@ -22,15 +25,27 @@ class AdminPlantController extends Controller
     public function authenticate(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
+            'username' => ['nullable', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! hash_equals((string) config('admin.password'), $credentials['password'])) {
+        $user = null;
+        if ($credentials['username'] !== null && $credentials['username'] !== '') {
+            $user = \App\Models\User::where('name', $credentials['username'])->first();
+        }
+
+        $authenticated = $user !== null
+            ? Hash::check($credentials['password'], $user->password)
+            : ($credentials['username'] === null || $credentials['username'] === '')
+                && hash_equals((string) config('admin.password'), $credentials['password']);
+
+        if (! $authenticated) {
             return back()->withErrors(['password' => 'Password admin tidak sesuai.'])->onlyInput('password');
         }
 
         $request->session()->regenerate();
         $request->session()->put('admin_authenticated', true);
+        $request->session()->put('admin_user_id', $user?->id ?? config('admin.user_id'));
 
         return redirect()->intended(route('admin.plants.index'));
     }
@@ -132,7 +147,10 @@ $sortColumns = [
 
     public function create(): View
     {
-        return view('admin.plants.create', ['categories' => Category::orderBy('name')->get()]);
+        return view('admin.plants.create', [
+            'plant' => new Plant(),
+            'categories' => Category::orderBy('name')->get(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -151,6 +169,97 @@ $sortColumns = [
         ]);
     }
 
+    public function history(Plant $plant): View
+    {
+        $plant->load('category');
+        $histories = $plant->populationHistories()
+            ->with('user')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.plants.history', compact('plant', 'histories'));
+    }
+
+    public function updatePopulation(Request $request, Plant $plant): RedirectResponse
+    {
+        $changeType = $request->input('change_type');
+        $locationType = $request->input('location_type');
+        $reasons = [
+            'add' => ['purchase', 'propagation', 'initial_stock', 'other'],
+            'subtract' => ['damaged', 'sale_distribution', 'other'],
+        ];
+
+        $validated = $request->validate([
+            'change_type' => ['required', Rule::in(array_keys($reasons))],
+            'location_type' => ['required', Rule::in(['greenhouse', 'outdoor'])],
+            'change_amount' => ['required', 'integer', 'min:1'],
+            'reason' => ['required', Rule::in($reasons[$changeType] ?? [])],
+            'other_reason' => ['required_if:reason,other', 'nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+            'documentation_photo' => [
+                Rule::requiredIf($changeType === 'subtract'),
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:10240',
+            ],
+        ], [
+            'documentation_photo.required' => 'Foto dokumentasi wajib diunggah untuk perubahan kurang.',
+        ]);
+
+        $photo = null;
+        DB::transaction(function () use ($request, $plant, $validated, $changeType, $locationType, &$photo): void {
+            $lockedPlant = Plant::whereKey($plant->getKey())->lockForUpdate()->firstOrFail();
+            $greenhouseBefore = (int) ($lockedPlant->greenhouse_population ?? 0);
+            $outdoorBefore = (int) ($lockedPlant->outdoor_population ?? 0);
+            $before = $locationType === 'greenhouse' ? $greenhouseBefore : $outdoorBefore;
+            $amount = $changeType === 'subtract'
+                ? -abs((int) $validated['change_amount'])
+                : abs((int) $validated['change_amount']);
+            $after = $before + $amount;
+
+            if ($after < 0) {
+                throw ValidationException::withMessages([
+                    'change_amount' => 'Jumlah pengurangan tidak boleh melebihi populasi saat ini.',
+                ]);
+            }
+
+            if ($request->hasFile('documentation_photo')) {
+                $photo = basename($request->file('documentation_photo')->store('plant-population-history', 'public'));
+            }
+
+            $greenhouseAfter = $locationType === 'greenhouse' ? $after : $greenhouseBefore;
+            $outdoorAfter = $locationType === 'outdoor' ? $after : $outdoorBefore;
+            $lockedPlant->update([
+                'greenhouse_population' => $greenhouseAfter,
+                'outdoor_population' => $outdoorAfter,
+                'population' => $greenhouseAfter + $outdoorAfter,
+            ]);
+
+            PlantPopulationHistory::create([
+                'plant_id' => $lockedPlant->id,
+                'user_id' => auth()->id() ?: session('admin_user_id'),
+                'recorder_name' => auth()->user()?->name ?? config('admin.user_name', 'Admin'),
+                'change_type' => $changeType,
+                'location_type' => $locationType,
+                'change_amount' => $amount,
+                'population_before' => $before,
+                'population_after' => $after,
+                'greenhouse_population_before' => $greenhouseBefore,
+                'greenhouse_population_after' => $greenhouseAfter,
+                'outdoor_population_before' => $outdoorBefore,
+                'outdoor_population_after' => $outdoorAfter,
+                'reason' => $validated['reason'],
+                'other_reason' => $validated['other_reason'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'documentation_photo' => $photo,
+                'changed_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('admin.plants.history', $plant)->with('success', 'Jumlah populasi berhasil diperbarui.');
+    }
+
     public function update(Request $request, Plant $plant): RedirectResponse
     {
         $this->savePlant($plant, $request);
@@ -163,6 +272,9 @@ $sortColumns = [
         if ($plant->image) {
             Storage::disk('public')->delete('plants/' . $plant->image);
         }
+        foreach ($plant->image_gallery ?? [] as $image) {
+            Storage::disk('public')->delete('plants/' . $image);
+        }
 
         $plant->delete();
 
@@ -173,9 +285,12 @@ $sortColumns = [
     {
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
-            'location_type' => ['required', 'in:greenhouse,collection'],
+            'location_type' => ['required', 'in:greenhouse,outdoor,both,collection'],
             'population' => ['nullable', 'integer', 'min:0'],
+            'greenhouse_population' => ['required_if:location_type,greenhouse,both', 'nullable', 'integer', 'min:0'],
+            'outdoor_population' => ['required_if:location_type,outdoor,both,collection', 'nullable', 'integer', 'min:0'],
             'name' => ['required', 'string', 'max:255'],
+            'kingdom' => ['required', 'string', 'max:255'],
             'latin_name' => ['required', 'string', 'max:255'],
             'family' => ['required', 'string', 'max:255'],
             'ordo' => ['required', 'string', 'max:255'],
@@ -186,11 +301,26 @@ $sortColumns = [
             'benefits' => ['required', 'string'],
             'origin' => ['required', 'string', 'max:255'], // Tambahan untuk Kawasan Asal
             'origin_distribution' => ['required', 'string'], // Untuk Sebaran Botani
-            'image' => [$plant->exists ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'image' => [$plant->exists ? 'nullable' : 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'images' => ['nullable', 'array', 'max:12'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $validated['slug'] = Str::slug($validated['name']);
+        if ($plant->exists) {
+            $validated['greenhouse_population'] = $plant->greenhouse_population;
+            $validated['outdoor_population'] = $plant->outdoor_population;
+        }
+        if ($validated['location_type'] === 'collection') {
+            $validated['location_type'] = 'outdoor';
+        }
+        if (! $plant->exists) {
+            $validated['greenhouse_population'] = (int) ($validated['greenhouse_population'] ?? 0);
+            $validated['outdoor_population'] = (int) ($validated['outdoor_population'] ?? 0);
+        }
+        $validated['population'] = (int) ($validated['greenhouse_population'] ?? 0)
+            + (int) ($validated['outdoor_population'] ?? 0);
         $slugRule = Rule::unique('plants', 'slug')->ignore($plant->id);
         validator(['slug' => $validated['slug']], ['slug' => [$slugRule]])->validate();
         $validated['is_active'] = $request->boolean('is_active');
@@ -201,6 +331,16 @@ $sortColumns = [
             }
             $validated['image'] = $request->file('image')->store('plants', 'public');
             $validated['image'] = basename($validated['image']);
+        }
+
+        if ($request->hasFile('images')) {
+            foreach ($plant->image_gallery ?? [] as $image) {
+                Storage::disk('public')->delete('plants/' . $image);
+            }
+
+            $validated['image_gallery'] = collect($request->file('images'))
+                ->map(fn ($image) => basename($image->store('plants', 'public')))
+                ->all();
         }
 
         $plant->fill($validated)->save();
