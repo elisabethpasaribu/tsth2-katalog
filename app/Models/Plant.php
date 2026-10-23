@@ -14,7 +14,10 @@ class Plant extends Model
         'category_id', 
         'location_type',      // <-- Tambahkan ini agar data lokasi bisa disimpan
         'population',
+        'greenhouse_population',
+        'outdoor_population',
         'name', 
+        'kingdom',
         'slug', 
         'latin_name', 
         'family',
@@ -26,19 +29,28 @@ class Plant extends Model
         'origin_distribution',  
         'description_short', 
         'description_full', 
-        'image', 
+        'image',
+        'image_gallery',
         'is_active'
     ];
 
     protected $casts = [
         'population' => 'integer',
+        'greenhouse_population' => 'integer',
+        'outdoor_population' => 'integer',
         'is_active' => 'boolean',
+        'image_gallery' => 'array',
     ];
 
     // Relasi: 1 Plant milik 1 Category
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function populationHistories()
+    {
+        return $this->hasMany(PlantPopulationHistory::class)->latest('changed_at');
     }
 
     // Scope: filter hanya yang aktif
