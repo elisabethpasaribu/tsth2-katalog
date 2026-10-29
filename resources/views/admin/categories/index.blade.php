@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Kelola Kategori')
 
@@ -8,16 +8,7 @@
     
     <h1 class="mb-6 font-['Manrope'] text-2xl font-extrabold text-[#003f32]">Kelola Kategori</h1>
 
-    @if(session('success'))
-        <div class="mb-4 rounded-lg bg-[#eef6ef] p-4 text-sm font-bold text-[#003f32]">{{ session('success') }}</div>
-    @endif
     
-    @if ($errors->any())
-        <div class="mb-4 rounded-lg bg-[#fff2e8] p-4 text-sm text-[#9b4b20]">
-            {{ $errors->first() }}
-        </div>
-    @endif
-
     <div class="grid gap-8 md:grid-cols-3">
         <!-- Form Tambah Kategori -->
         <div class="md:col-span-1 h-fit rounded-xl border border-[#e0e9e1] bg-white p-6 shadow-sm">
@@ -36,8 +27,22 @@
             <div class="space-y-3">
                 @forelse($categories as $category)
                     <div class="flex items-center justify-between rounded-lg border border-[#e0e9e1] p-3 hover:bg-[#f5faf5]">
-                        <span class="text-sm font-bold text-[#123b32]">{{ $category->name }}</span>
-                        <a href="{{ route('admin.categories.edit', $category) }}" class="rounded bg-[#e8f3ea] px-4 py-1.5 text-xs font-bold text-[#003f32] hover:bg-[#cbe5d0]">Edit</a>
+                        <div>
+                            <span class="block text-sm font-bold text-[#123b32]">{{ $category->name }}</span>
+                            <span class="mt-1 block text-[11px] text-[#718178]">{{ $category->plants_count }} tanaman</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.categories.edit', $category) }}" class="rounded bg-[#e8f3ea] px-4 py-1.5 text-xs font-bold text-[#003f32] hover:bg-[#cbe5d0]">Edit</a>
+                            @if ($category->plants_count === 0)
+                                <form method="POST" action="{{ route('admin.categories.destroy', $category) }}" data-delete-form data-delete-title="Hapus kategori?" data-delete-text="Kategori kosong ini akan dihapus secara permanen.">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="rounded bg-[#fff0ed] px-4 py-1.5 text-xs font-bold text-[#b04d3e] hover:bg-[#ffe0da]">Hapus</button>
+                                </form>
+                            @else
+                                <button type="button" disabled title="Kategori masih digunakan oleh tanaman" class="cursor-not-allowed rounded bg-[#f1eeee] px-4 py-1.5 text-xs font-bold text-[#a99a9a]">Hapus</button>
+                            @endif
+                        </div>
                     </div>
                 @empty
                     <p class="text-sm text-gray-500">Belum ada kategori.</p>

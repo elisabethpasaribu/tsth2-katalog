@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Edit Kategori')
 
@@ -8,12 +8,6 @@
     
     <div class="rounded-xl border border-[#e0e9e1] bg-white p-8 shadow-sm">
         <h1 class="mb-6 font-['Manrope'] text-xl font-extrabold text-[#003f32]">Edit Kategori</h1>
-
-        @if ($errors->any())
-            <div class="mb-4 rounded-lg bg-[#fff2e8] p-4 text-sm text-[#9b4b20]">
-                {{ $errors->first() }}
-            </div>
-        @endif
 
         <form action="{{ route('admin.categories.update', $category) }}" method="POST">
             @csrf

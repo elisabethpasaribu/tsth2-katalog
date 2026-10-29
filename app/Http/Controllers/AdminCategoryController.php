@@ -10,7 +10,7 @@ class AdminCategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::orderBy('name')->get();
+        $categories = Category::withCount('plants')->orderBy('name')->get();
         return view('admin.categories.index', compact('categories'));
     }
 
@@ -51,5 +51,18 @@ class AdminCategoryController extends Controller
         ]);
 
         return redirect()->route('admin.categories.index')->with('success', 'Kategori berhasil diperbarui.');
+    }
+
+    public function destroy(Category $category)
+    {
+        if ($category->plants()->exists()) {
+            return back()->withErrors([
+                'category' => 'Kategori tidak dapat dihapus karena masih digunakan oleh tanaman.',
+            ]);
+        }
+
+        $category->delete();
+
+        return back()->with('success', 'Kategori berhasil dihapus.');
     }
 }
