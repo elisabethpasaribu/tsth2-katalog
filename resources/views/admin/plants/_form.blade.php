@@ -1,28 +1,30 @@
-@if ($errors->any())
-<div class="mb-6 rounded-lg bg-[#fff2e8] px-4 py-3 text-xs text-[#9b4b20]">
-    <p class="font-bold">Periksa kembali form:</p>
-    <ul class="mt-1 list-disc pl-4">
-        @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-        @endforeach
-    </ul>
-</div>
-@endif
-
 <div class="grid gap-5 md:grid-cols-2">
     <label class="block text-xs font-bold text-[#38584d]">Nama tanaman *<input name="name" value="{{ old('name', $plant->name ?? '') }}" required class="admin-input"></label>
     
     <label class="block text-xs font-bold text-[#38584d]">Kategori *<select name="category_id" required class="admin-input"><option value="">Pilih kategori</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected(old('category_id', $plant->category_id ?? '') == $category->id)>{{ $category->name }}</option>@endforeach</select></label>
     
-    @php($selectedLocation = old('location_type', $plant->location_type ?? 'greenhouse'))
+    @php
+        $selectedLocation = old('location_type', $plant->location_type ?? 'greenhouse');
+        $selectedLocations = is_array($selectedLocation)
+            ? $selectedLocation
+            : ($selectedLocation === 'both'
+                ? ['greenhouse', 'outdoor']
+                : [$selectedLocation === 'collection' ? 'outdoor' : $selectedLocation]);
+    @endphp
 
-    <label class="block text-xs font-bold text-[#38584d]">Lokasi Katalog *
-        <select name="location_type" id="location-type" required class="admin-input">
-            <option value="greenhouse" @selected($selectedLocation === 'greenhouse')>Greenhouse</option>
-            <option value="outdoor" @selected($selectedLocation === 'outdoor' || $selectedLocation === 'collection')>Outdoor</option>
-            <option value="both" @selected($selectedLocation === 'both')>Greenhouse dan Outdoor</option>
-        </select>
-    </label>
+    <fieldset class="block text-xs font-bold text-[#38584d]">
+        <legend>Lokasi Katalog *</legend>
+        <div class="mt-2 flex gap-4">
+            <label class="flex items-center gap-2 font-normal">
+                <input type="checkbox" name="location_type[]" value="greenhouse" @checked(in_array('greenhouse', $selectedLocations, true)) class="location-checkbox h-4 w-4 accent-[#003f32]">
+                Greenhouse
+            </label>
+            <label class="flex items-center gap-2 font-normal">
+                <input type="checkbox" name="location_type[]" value="outdoor" @checked(in_array('outdoor', $selectedLocations, true)) class="location-checkbox h-4 w-4 accent-[#003f32]">
+                Outdoor
+            </label>
+        </div>
+    </fieldset>
 
     <div class="space-y-2">
         <p class="text-xs font-bold text-[#38584d]">Populasi awal</p>
@@ -46,7 +48,7 @@
     
     <label class="block text-xs font-bold text-[#38584d]">Genus *<input name="genus" value="{{ old('genus', $plant->genus ?? '') }}" required class="admin-input"></label>
     
-    <label class="block text-xs font-bold text-[#38584d]">Botanis *<input name="botanist" value="{{ old('botanist', $plant->botanist ?? '') }}" required class="admin-input"></label>
+    <label class="block text-xs font-bold text-[#38584d]">Botanist *<input name="botanist" value="{{ old('botanist', $plant->botanist ?? '') }}" required class="admin-input"></label>
     
     <label class="block text-xs font-bold text-[#38584d]">Gambar utama (ukuran bebas, tampil 1:1) @if(empty($plant?->image)) * @endif
         <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full rounded-lg bg-[#f5faf5] p-2 text-xs ring-1 ring-[#dbe9dd]" @if(empty($plant?->image)) required @endif>
@@ -101,7 +103,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const locationSelect = document.getElementById('location-type');
+        const locationCheckboxes = [...document.querySelectorAll('.location-checkbox')];
         const populationFields = {
             greenhouse: {
                 field: document.getElementById('greenhouse-population-field'),
@@ -114,17 +116,19 @@
         };
 
         const updatePopulationFields = () => {
-            const selectedLocation = locationSelect.value === 'collection' ? 'outdoor' : locationSelect.value;
+            const selectedLocations = locationCheckboxes
+                .filter((checkbox) => checkbox.checked)
+                .map((checkbox) => checkbox.value);
 
             Object.entries(populationFields).forEach(([location, elements]) => {
-                const isVisible = selectedLocation === 'both' || selectedLocation === location;
+                const isVisible = selectedLocations.includes(location);
                 elements.field.classList.toggle('hidden', !isVisible);
                 elements.field.setAttribute('aria-hidden', String(!isVisible));
                 elements.input.disabled = !isVisible;
             });
         };
 
-        locationSelect?.addEventListener('change', updatePopulationFields);
+        locationCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', updatePopulationFields));
         updatePopulationFields();
 
         const addButton = document.getElementById('add-plant-image');
@@ -142,7 +146,12 @@
 
             event.preventDefault();
             oversizedInput.focus();
-            alert('Ukuran setiap gambar maksimal 10 MB. Isian form tetap tersimpan di halaman ini.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Ukuran gambar terlalu besar',
+                text: 'Ukuran setiap gambar maksimal 10 MB. Isian form tetap tersimpan di halaman ini.',
+                confirmButtonColor: '#003f32',
+            });
         });
 
         addButton.addEventListener('click', () => {

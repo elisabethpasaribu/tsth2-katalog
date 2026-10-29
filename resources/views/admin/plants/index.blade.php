@@ -10,62 +10,100 @@
         </div>
     </div>
 
-    @if (session('success'))
-        <div class="mt-6 flex justify-between items-center rounded-lg bg-[#e8f3df] px-4 py-3 text-xs font-bold text-[#28604d]" role="status">
-            <div class="flex items-center gap-2">
-                <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m6 2.25a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button type="button" class="ml-4 shrink-0 rounded p-1 transition hover:bg-[#d5e7d7]" aria-label="Tutup notifikasi" onclick="this.closest('[role=status]').remove()">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    @endif
-
     {{-- RINGKASAN DATA & STATISTIK KOLEKSI --}}
     <div class="mt-5 space-y-4">
-        {{-- BAGIAN 1: STATISTIK UTAMA (LOKASI) --}}
+                {{-- BAGIAN 1: STATISTIK UTAMA (LOKASI) --}}
+        @php
+            $currentLocation = request('location');
+            $isGreenhouseActive = $currentLocation === 'greenhouse';
+            $isOutdoorActive = $currentLocation === 'outdoor';
+
+            // Logika Toggle: Jika sedang aktif, klik lagi akan menghapus filter (kembali ke semua)
+            $greenhouseParams = array_merge(request()->query(), ['page' => null]);
+            if ($isGreenhouseActive) {
+                unset($greenhouseParams['location']);
+            } else {
+                $greenhouseParams['location'] = 'greenhouse';
+            }
+
+            $outdoorParams = array_merge(request()->query(), ['page' => null]);
+            if ($isOutdoorActive) {
+                unset($outdoorParams['location']);
+            } else {
+                $outdoorParams['location'] = 'outdoor';
+            }
+        @endphp
+
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {{-- Kartu Lokasi: Greenhouse --}}
-            <div class="flex items-center justify-between rounded-2xl border border-[#dbe9dd] bg-white p-5 shadow-[0_5px_18px_rgba(0,63,50,.05)] transition-all hover:border-[#00634e]">
+            <a href="{{ route('admin.plants.index', $greenhouseParams) }}" 
+               class="group flex items-center justify-between overflow-hidden rounded-2xl border {{ $isGreenhouseActive ? 'border-[#00634e] bg-[#f6fbf6] shadow-md ring-2 ring-[#00634e]/20' : 'border-[#dbe9dd] bg-white shadow-[0_5px_18px_rgba(0,63,50,.05)]' }} p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#00634e] hover:shadow-lg">
+                
                 <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-700">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {{ $isGreenhouseActive ? 'bg-green-100 text-green-800' : 'bg-green-50 text-green-700' }} transition-colors group-hover:bg-green-100">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-[#718178]">Greenhouse</p>
-                        <h3 class="mt-1 text-xl font-extrabold text-[#003f32]">{{ $summary['greenhouse'] }} <span class="text-xs font-normal text-[#718178]">Jenis Tanaman</span></h3>
+                        <p class="text-xs font-bold uppercase tracking-wider {{ $isGreenhouseActive ? 'text-[#00634e]' : 'text-[#718178]' }}">Greenhouse</p>
+                        <h3 class="mt-1 text-xl font-extrabold text-[#003f32]">
+                            {{ $summary['greenhouse'] }} <span class="text-xs font-normal text-[#718178]">Jenis</span>
+                        </h3>
                     </div>
                 </div>
-            </div>
+
+                {{-- Sisi Kanan: Total Populasi & CTA --}}
+                <div class="flex flex-col items-end border-l border-[#edf3ed] pl-5">
+                    <p class="text-lg font-extrabold text-[#003f32] tabular-nums leading-none">
+                        {{ number_format($summary['greenhouse_population'] ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="mt-1 text-[10px] font-medium text-[#718178]">Total Populasi</p>
+                    
+                    {{-- Teks ini muncul saat di-hover / jika sedang aktif --}}
+                    <span class="mt-1.5 inline-flex items-center text-[10px] font-bold text-[#00634e] {{ $isGreenhouseActive ? 'opacity-100' : 'opacity-0' }} transition-opacity duration-300 group-hover:opacity-100">
+                        {{ $isGreenhouseActive ? 'Hapus Filter' : 'Lihat Detail' }} <span class="ml-1" aria-hidden="true">{{ $isGreenhouseActive ? '×' : '→' }}</span>
+                    </span>
+                </div>
+            </a>
 
             {{-- Kartu Lokasi: Outdoor --}}
-            <div class="flex items-center justify-between rounded-2xl border border-[#dbe9dd] bg-white p-5 shadow-[0_5px_18px_rgba(0,63,50,.05)] transition-all hover:border-[#00634e]">
+            <a href="{{ route('admin.plants.index', $outdoorParams) }}" 
+               class="group flex items-center justify-between overflow-hidden rounded-2xl border {{ $isOutdoorActive ? 'border-[#b87900] bg-[#fffbf0] shadow-md ring-2 ring-[#b87900]/20' : 'border-[#dbe9dd] bg-white shadow-[0_5px_18px_rgba(0,63,50,.05)]' }} p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#b87900] hover:shadow-lg">
+                
                 <div class="flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl {{ $isOutdoorActive ? 'bg-amber-100 text-amber-800' : 'bg-amber-50 text-amber-700' }} transition-colors group-hover:bg-amber-100">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </div>
                     <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-[#718178]">Outdoor</p>
-                        <h3 class="mt-1 text-xl font-extrabold text-[#003f32]">{{ $summary['outdoor'] }} <span class="text-xs font-normal text-[#718178]">Jenis Tanaman</span></h3>
+                        <p class="text-xs font-bold uppercase tracking-wider {{ $isOutdoorActive ? 'text-[#b87900]' : 'text-[#718178]' }}">Outdoor</p>
+                        <h3 class="mt-1 text-xl font-extrabold text-[#003f32]">
+                            {{ $summary['outdoor'] }} <span class="text-xs font-normal text-[#718178]">Jenis</span>
+                        </h3>
                     </div>
                 </div>
-            </div>
+
+                {{-- Sisi Kanan: Total Populasi & CTA --}}
+                <div class="flex flex-col items-end border-l border-[#edf3ed] pl-5">
+                    <p class="text-lg font-extrabold text-[#003f32] tabular-nums leading-none">
+                        {{ number_format($summary['outdoor_population'] ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="mt-1 text-[10px] font-medium text-[#718178]">Total Populasi</p>
+                    
+                    {{-- Teks ini muncul saat di-hover / jika sedang aktif --}}
+                    <span class="mt-1.5 inline-flex items-center text-[10px] font-bold text-[#b87900] {{ $isOutdoorActive ? 'opacity-100' : 'opacity-0' }} transition-opacity duration-300 group-hover:opacity-100">
+                        {{ $isOutdoorActive ? 'Hapus Filter' : 'Lihat Detail' }} <span class="ml-1" aria-hidden="true">{{ $isOutdoorActive ? '×' : '→' }}</span>
+                    </span>
+                </div>
+            </a>
         </div>
 
         {{-- BAGIAN 2: RINGKASAN PER KATEGORI --}}
         <div class="rounded-2xl border border-[#dbe9dd] bg-white p-5 shadow-[0_5px_18px_rgba(0,63,50,.05)]">
             <h2 class="text-xs font-bold uppercase tracking-wider text-[#718178]">Kategori Tanaman</h2>
-
-            <div class="mt-6 flex gap-6 overflow-x-auto pb-2">
+            <div class="mt-4 flex gap-3 overflow-x-auto pb-2">
                 @forelse($categorySummary as $item)
                     @php
                         $selectedCategoryIds = array_map('strval', (array) request('category', []));
@@ -76,19 +114,15 @@
                         }
                         $categoryUrl = route('admin.plants.index', $categoryUrlParameters);
                     @endphp
-                    <a href="{{ $categoryUrl }}" class="group flex min-h-[152px] w-[288px] shrink-0 flex-col justify-between rounded-2xl border border-[#dbe9dd] bg-white p-6 transition-all duration-200 hover:border-[#00634e] hover:shadow-md">
 
-                        {{-- Judul Kategori --}}
-                        <h3 class="truncate text-xl font-bold text-[#003f32]" title="{{ $item->category?->name ?? 'Tanpa kategori' }}">
+                    <a href="{{ $categoryUrl }}" class="group flex h-[90px] w-[180px] shrink-0 flex-col justify-between rounded-xl border {{ $categoryIsSelected ? 'border-[#00634e] shadow-sm' : 'border-[#dbe9dd]' }} bg-white p-3 transition-all duration-200 hover:border-[#00634e] hover:shadow-md">
+                        <h3 class="w-full truncate text-base font-bold text-[#003f32]" title="{{ $item->category?->name ?? 'Tanpa kategori' }}">
                             {{ $item->category?->name ?? 'Tanpa kategori' }}
                         </h3>
-
-                        {{-- Info Jumlah (Teks jenis dan populasi dipisah sejauh mungkin ke kiri dan kanan) --}}
-
-<div class="mt-5 flex flex-col gap-1 text-base">
-    <span class="text-[#718178]">{{ $item->plant_count }} jenis</span>
-    <span class="font-semibold text-[#b87900]">{{ number_format($item->population_total, 0, ',', '.') }} populasi</span>
-</div>
+                        <div class="flex flex-col text-xs leading-tight">
+                            <span class="text-[#718178]">{{ $item->plant_count }} jenis</span>
+                            <span class="font-semibold text-[#b87900]">{{ number_format($item->population_total, 0, ',', '.') }} populasi</span>
+                        </div>
                     </a>
                 @empty
                     <div class="w-full py-4 text-center text-xs text-[#718178]">
@@ -97,6 +131,8 @@
                 @endforelse
             </div>
         </div>
+    </div>
+
     {{-- SEARCH BAR, FILTER, & TOMBOL TAMBAH--}}
     <div class="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         {{-- Search Bar & Filter Dropdown --}}
@@ -183,7 +219,15 @@
     </div>
 
     {{-- TABEL DATA TANAMAN & DROPDOWN SORT --}}
-    <div class="mt-5 overflow-x-visible rounded-xl border border-[#dbe9dd] bg-white shadow-[0_5px_18px_rgba(0,63,50,.05)]" id="plant-table-container">
+    <div class="mt-5 flex flex-wrap items-center justify-between gap-2 text-xs text-[#718178]" aria-live="polite">
+        @if ($plants->total() > 0)
+            <span>Showing {{ $plants->firstItem() }} to {{ $plants->lastItem() }} of {{ $plants->total() }} items</span>
+        @else
+            <span>Showing 0 to 0 of 0 items</span>
+        @endif
+    </div>
+
+    <div class="mt-2 overflow-x-visible rounded-xl border border-[#dbe9dd] bg-white shadow-[0_5px_18px_rgba(0,63,50,.05)]" id="plant-table-container">
         @php
             $sortUrl = fn ($column, $direction) => route('admin.plants.index', array_merge(request()->query(), ['sort' => $column, 'direction' => $direction, 'page' => null]));
             $activeSort = request('sort', 'name');
@@ -194,75 +238,60 @@
             <thead class="border-b border-[#dbe9dd] bg-[#f6fbf6] text-[10px] uppercase tracking-wide text-[#718178]">
                 <tr>
                     {{-- 1. Kolom Tanaman --}}
-                    <th class="relative px-5 py-4">
-                        <button type="button" onclick="toggleDropdown(event, 'dropdown-name')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                    <th class="px-5 py-4">
+                        <a href="{{ $sortUrl('name', $activeSort === 'name' && $activeDir === 'asc' ? 'desc' : 'asc') }}" class="group inline-flex items-center gap-2 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Tanaman</span>
-                            <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'name' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
-                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <span class="flex flex-col -space-y-[2px]">
+                                {{-- Arrow Up --}}
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'name' && $activeDir === 'asc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 0l5 6H0z"/></svg>
+                                {{-- Arrow Down --}}
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'name' && $activeDir === 'desc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0h10z"/></svg>
                             </span>
-                        </button>
-                        <div id="dropdown-name" class="sort-dropdown hidden absolute left-5 top-14 z-50 w-48 rounded-xl border border-[#dbe9dd] bg-white p-1.5 shadow-xl">
-                            <a href="{{ $sortUrl('name', 'asc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'name' && $activeDir === 'asc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>A ke Z</span></a>
-                            <a href="{{ $sortUrl('name', 'desc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'name' && $activeDir === 'desc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Z ke A</span></a>
-                        </div>
+                        </a>
                     </th>
 
                     {{-- 2. Kolom Kategori --}}
-                    <th class="relative px-5 py-4">
-                        <button type="button" onclick="toggleDropdown(event, 'dropdown-category')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                    <th class="px-5 py-4">
+                        <a href="{{ $sortUrl('category', $activeSort === 'category' && $activeDir === 'asc' ? 'desc' : 'asc') }}" class="group inline-flex items-center gap-2 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Kategori</span>
-                            <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'category' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
-                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <span class="flex flex-col -space-y-[2px]">
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'category' && $activeDir === 'asc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 0l5 6H0z"/></svg>
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'category' && $activeDir === 'desc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0h10z"/></svg>
                             </span>
-                        </button>
-                        <div id="dropdown-category" class="sort-dropdown hidden absolute left-5 top-14 z-50 w-48 rounded-xl border border-[#dbe9dd] bg-white p-1.5 shadow-xl">
-                            <a href="{{ $sortUrl('category', 'asc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'category' && $activeDir === 'asc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>A ke Z</span></a>
-                            <a href="{{ $sortUrl('category', 'desc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'category' && $activeDir === 'desc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Z ke A</span></a>
-                        </div>
+                        </a>
                     </th>
 
                     {{-- 3. Kolom Lokasi --}}
-                    <th class="relative px-5 py-4">
-                        <button type="button" onclick="toggleDropdown(event, 'dropdown-location')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                    <th class="px-5 py-4">
+                        <a href="{{ $sortUrl('location', $activeSort === 'location' && $activeDir === 'asc' ? 'desc' : 'asc') }}" class="group inline-flex items-center gap-2 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Lokasi</span>
-                            <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'location' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
-                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <span class="flex flex-col -space-y-[2px]">
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'location' && $activeDir === 'asc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 0l5 6H0z"/></svg>
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'location' && $activeDir === 'desc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0h10z"/></svg>
                             </span>
-                        </button>
-                        <div id="dropdown-location" class="sort-dropdown hidden absolute left-5 top-14 z-50 w-52 rounded-xl border border-[#dbe9dd] bg-white p-1.5 shadow-xl">
-                            <a href="{{ $sortUrl('location', 'asc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'location' && $activeDir === 'asc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Greenhouse ke Outdoor</span></a>
-                            <a href="{{ $sortUrl('location', 'desc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'location' && $activeDir === 'desc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Outdoor ke Greenhouse</span></a>
-                        </div>
+                        </a>
                     </th>
 
                     {{-- 4. Kolom Populasi --}}
-                    <th class="relative px-5 py-4 text-right">
-                        <div class="flex items-center justify-end">
-                            <button type="button" onclick="toggleDropdown(event, 'dropdown-population')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
-                                <span>Jumlah populasi</span>
-                                <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'population' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
-                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                </span>
-                            </button>
-                        </div>
-                        <div id="dropdown-population" class="sort-dropdown hidden absolute right-5 top-14 z-50 w-52 rounded-xl border border-[#dbe9dd] bg-white p-1.5 text-left shadow-xl">
-                            <a href="{{ $sortUrl('population', 'asc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'population' && $activeDir === 'asc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Terkecil ke Terbanyak</span></a>
-                            <a href="{{ $sortUrl('population', 'desc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'population' && $activeDir === 'desc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Terbanyak ke Terkecil</span></a>
-                        </div>
+                    <th class="px-5 py-4 text-right">
+                        <a href="{{ $sortUrl('population', $activeSort === 'population' && $activeDir === 'asc' ? 'desc' : 'asc') }}" class="group inline-flex items-center justify-end gap-2 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none w-full">
+                            <span>Jumlah populasi</span>
+                            <span class="flex flex-col -space-y-[2px]">
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'population' && $activeDir === 'asc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 0l5 6H0z"/></svg>
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'population' && $activeDir === 'desc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0h10z"/></svg>
+                            </span>
+                        </a>
                     </th>
 
                     {{-- 5. Kolom Status --}}
-                    <th class="relative px-5 py-4">
-                        <button type="button" onclick="toggleDropdown(event, 'dropdown-status')" class="group inline-flex items-center gap-1.5 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
+                    <th class="px-5 py-4">
+                        <a href="{{ $sortUrl('status', $activeSort === 'status' && $activeDir === 'asc' ? 'desc' : 'asc') }}" class="group inline-flex items-center gap-2 font-bold uppercase tracking-wide text-[#718178] hover:text-[#003f32] focus:outline-none">
                             <span>Status</span>
-                            <span class="flex h-5 w-5 items-center justify-center rounded-full {{ $activeSort === 'status' ? 'bg-[#e8f3df] text-[#003f32]' : 'text-[#b9c8bc] group-hover:bg-[#e3eee4] group-hover:text-[#003f32]' }}">
-                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <span class="flex flex-col -space-y-[2px]">
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'status' && $activeDir === 'asc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 0l5 6H0z"/></svg>
+                                <svg class="h-2 w-2.5 {{ $activeSort === 'status' && $activeDir === 'desc' ? 'text-[#003f32]' : 'text-[#b9c8bc] group-hover:text-[#718178]' }}" fill="currentColor" viewBox="0 0 10 6"><path d="M5 6L0 0h10z"/></svg>
                             </span>
-                        </button>
-                        <div id="dropdown-status" class="sort-dropdown hidden absolute left-5 top-14 z-50 w-48 rounded-xl border border-[#dbe9dd] bg-white p-1.5 shadow-xl">
-                            <a href="{{ $sortUrl('status', 'asc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'status' && $activeDir === 'asc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Aktif dulu</span></a>
-                            <a href="{{ $sortUrl('status', 'desc') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[#557067] hover:bg-[#f6fbf6] hover:text-[#003f32] {{ $activeSort === 'status' && $activeDir === 'desc' ? 'bg-[#f6fbf6] font-bold text-[#003f32]' : '' }}"><span>Nonaktif dulu</span></a>
-                        </div>
+                        </a>
                     </th>
 
                     <th class="px-5 py-4 text-right">Aksi</th>
@@ -270,7 +299,7 @@
             </thead>
             <tbody class="divide-y divide-[#edf3ed]">
             @forelse ($plants as $plant)
-                <tr class="hover:bg-[#fbfefb]">
+                <tr class="transition-colors odd:bg-white even:bg-[#f6fbf6] hover:bg-[#eaf5ea]">
                     <td class="px-5 py-4">
                         <div class="flex items-center gap-3">
                             @if($plant->image)
@@ -287,26 +316,36 @@
                     <td class="px-5 py-4 text-[#557067]">{{ $plant->category?->name }}</td>
                     <td class="px-5 py-4">
                         @if($plant->location_type === 'both')
-                            <span class="rounded bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-800">Greenhouse & Outdoor</span>
+                            <span class="rounded bg-green-100 px-2 py-1 text-[10px] font-bold text-green-800">Greenhouse</span>
+                            <span class="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800">Outdoor</span>
                         @elseif($plant->location_type === 'greenhouse')
                             <span class="rounded bg-green-100 px-2 py-1 text-[10px] font-bold text-green-800">Greenhouse</span>
                         @else
                             <span class="rounded bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800">Outdoor</span>
                         @endif
                     </td>
-                    <td class="px-5 py-4 text-right text-[#557067]">
-                        <div class="flex items-center justify-end gap-3 whitespace-nowrap">
-                            <span class="text-right leading-5">
-                                @if($plant->location_type === 'both')
-                                    <span class="block tabular-nums">G: {{ number_format((int) ($plant->greenhouse_population ?? 0), 0, ',', '.') }}</span>
-                                    <span class="block tabular-nums">O: {{ number_format((int) ($plant->outdoor_population ?? 0), 0, ',', '.') }}</span>
-                                @elseif($plant->location_type === 'greenhouse')
-                                    <span class="block tabular-nums">{{ number_format((int) ($plant->greenhouse_population ?? 0), 0, ',', '.') }}</span>
-                                @else
-                                    <span class="block tabular-nums">{{ number_format((int) ($plant->outdoor_population ?? 0), 0, ',', '.') }}</span>
-                                @endif
+                    <td class="px-5 py-4 text-right">
+                        @php
+                            // Gabungkan populasi berdasarkan lokasi tanaman
+                            $totalPopulation = match ($plant->location_type) {
+                                'both'       => (int) ($plant->greenhouse_population ?? 0) + (int) ($plant->outdoor_population ?? 0),
+                                'greenhouse' => (int) ($plant->greenhouse_population ?? 0),
+                                default      => (int) ($plant->outdoor_population ?? 0),
+                            };
+                        @endphp
+
+                        <div class="inline-flex flex-col items-end gap-1 whitespace-nowrap">
+                            {{-- Angka populasi jadi elemen utama --}}
+                            <span class="text-base font-extrabold tabular-nums text-[#003f32] leading-none">
+                                {{ number_format($totalPopulation, 0, ',', '.') }}
                             </span>
-                            <a href="{{ route('admin.plants.history', $plant) }}" class="inline-flex items-center rounded-md border border-[#dbe9dd] px-2 py-1 text-xs font-semibold text-[#00634e] hover:bg-[#f6fbf6] hover:text-[#003f32]">Riwayat <span class="ml-1" aria-hidden="true">→</span></a>
+
+                            {{-- Link riwayat dibuat kecil & subtle --}}
+                            <a href="{{ route('admin.plants.history', $plant) }}"
+                               class="inline-flex items-center text-[10px] font-medium text-[#718178] transition hover:text-[#00634e] hover:underline">
+                                Riwayat
+                                <span class="ml-0.5" aria-hidden="true">→</span>
+                            </a>
                         </div>
                     </td>
                     <td class="px-5 py-4">
@@ -317,7 +356,7 @@
                     <td class="px-5 py-4">
                         <div class="flex justify-end gap-3 font-bold">
                             <a href="{{ route('admin.plants.edit', $plant) }}" class="text-[#00634e] hover:text-[#b87900]">Edit</a>
-                            <form method="POST" action="{{ route('admin.plants.destroy', $plant) }}" onsubmit="return confirm('Hapus tanaman ini?')">
+                            <form method="POST" action="{{ route('admin.plants.destroy', $plant) }}" data-delete-form>
                                 @csrf
                                 @method('DELETE')
                                 <button class="text-[#b04d3e] hover:text-[#7d2318]">Hapus</button>

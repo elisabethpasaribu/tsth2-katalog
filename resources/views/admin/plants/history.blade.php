@@ -27,9 +27,6 @@
         </div>
     </div>
 
-    @if (session('success'))
-        <div class="mt-6 rounded-lg bg-[#e8f3df] px-4 py-3 text-xs font-bold text-[#28604d]" role="status">{{ session('success') }}</div>
-    @endif
 
     @if ($errors->any())
         <div class="mt-6 rounded-lg bg-[#fff2e8] px-4 py-3 text-xs text-[#9b4b20]">

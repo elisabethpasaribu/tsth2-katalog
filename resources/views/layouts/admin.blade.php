@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="min-h-screen bg-[#f2fbf4] text-[#173e34]">
     <header class="border-b border-[#dbe9dd] bg-white">
@@ -23,5 +24,73 @@
         </div>
     </header>
     <main class="mx-auto max-w-[1180px] px-5 py-8 lg:px-8">@yield('content')</main>
+    @if (session('success'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: @json(session('success')),
+                    confirmButtonText: 'Tutup',
+                    confirmButtonColor: '#003f32',
+                    timer: 3200,
+                    timerProgressBar: true,
+                });
+            });
+        </script>
+    @endif
+    @if ($errors->any())
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Periksa kembali form',
+                    text: @json(implode("\n", $errors->all())),
+                    confirmButtonColor: '#003f32',
+                });
+            });
+        </script>
+    @endif
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('form[data-swal-validation]').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    const requiredField = [...form.querySelectorAll('[required]:not(:disabled)')]
+                        .find((field) => !field.value.trim());
+
+                    if (!requiredField) return;
+
+                    event.preventDefault();
+                    const label = requiredField.closest('label')?.firstChild?.textContent?.trim() || 'kolom ini';
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Form belum lengkap',
+                        text: `${label.replace('*', '').trim()} wajib diisi.`,
+                        confirmButtonColor: '#003f32',
+                    }).then(() => requiredField.focus());
+                });
+            });
+
+            document.querySelectorAll('form[data-delete-form]').forEach((form) => {
+                form.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    const title = form.dataset.deleteTitle || 'Hapus data?';
+                    const text = form.dataset.deleteText || 'Data yang sudah dihapus tidak dapat dikembalikan.';
+                    Swal.fire({
+                        icon: 'warning',
+                        title,
+                        text,
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, hapus',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#b04d3e',
+                        cancelButtonColor: '#718178',
+                    }).then((result) => {
+                        if (result.isConfirmed) form.submit();
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>

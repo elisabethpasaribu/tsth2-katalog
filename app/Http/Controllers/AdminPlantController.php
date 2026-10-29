@@ -74,6 +74,14 @@ class AdminPlantController extends Controller
         $query->when(in_array($request->input('status'), ['active', 'inactive'], true), function ($q) use ($request) {
             $q->where('is_active', $request->input('status') === 'active');
         });
+        $query->when($request->filled('location'), function ($q) use ($request) {
+            $location = $request->input('location');
+            if ($location === 'greenhouse') {
+                $q->whereIn('location_type', ['greenhouse', 'both']);
+            } elseif ($location === 'outdoor') {
+                $q->whereIn('location_type', ['outdoor', 'collection', 'both']);
+            }
+        });
 
         $categorySummary = (clone $query)
             ->reorder()
@@ -83,13 +91,18 @@ class AdminPlantController extends Controller
             ->get()
             ->sortBy(fn ($item) => $item->category?->name)
             ->values();
+
         $locationSummary = (clone $query)
             ->reorder()
             ->select('location_type', DB::raw('COUNT(*) as plant_count'))
             ->groupBy('location_type')
             ->pluck('plant_count', 'location_type');
 
-$sortColumns = [
+        // --- TAMBAHAN BARU: MENGHITUNG TOTAL POPULASI LOKASI SEBELUM SORTING ---
+        $greenhousePopulationSum = (clone $query)->whereIn('location_type', ['greenhouse', 'both'])->sum('greenhouse_population');
+        $outdoorPopulationSum = (clone $query)->whereIn('location_type', ['outdoor', 'collection', 'both'])->sum('outdoor_population');
+
+        $sortColumns = [
             'name' => 'plants.name',
             'category' => 'categories.name',
             'location' => 'plants.location_type',
@@ -105,11 +118,10 @@ $sortColumns = [
 
         // --- PENGURUTAN KHUSUS LOKASI ---
         if ($sort === 'location') {
-            if ($direction === 'asc') {
-                $query->orderByRaw("CASE WHEN plants.location_type = 'greenhouse' THEN 1 ELSE 2 END");
-            } else {
-                $query->orderByRaw("CASE WHEN plants.location_type = 'greenhouse' THEN 2 ELSE 1 END");
-            }
+            $locationOrder = $direction === 'asc'
+                ? "CASE plants.location_type WHEN 'greenhouse' THEN 1 WHEN 'outdoor' THEN 2 WHEN 'collection' THEN 2 WHEN 'both' THEN 3 ELSE 4 END"
+                : "CASE plants.location_type WHEN 'both' THEN 1 WHEN 'outdoor' THEN 2 WHEN 'collection' THEN 2 WHEN 'greenhouse' THEN 3 ELSE 4 END";
+            $query->orderByRaw($locationOrder);
         } 
         // --- PENGURUTAN KHUSUS STATUS ---
         elseif ($sort === 'status') {
@@ -126,11 +138,14 @@ $sortColumns = [
 
         $query->orderBy('plants.id');
 
+        // --- UPDATE BAGIAN SUMMARY ---
         $summary = [
             'total' => $categorySummary->sum('plant_count'),
             'population' => $categorySummary->sum('population_total'),
-            'greenhouse' => $locationSummary->get('greenhouse', 0),
-            'outdoor' => $locationSummary->get('collection', 0),
+            'greenhouse' => $locationSummary->get('greenhouse', 0) + $locationSummary->get('both', 0),
+            'outdoor' => $locationSummary->get('outdoor', 0) + $locationSummary->get('collection', 0) + $locationSummary->get('both', 0),
+            'greenhouse_population' => $greenhousePopulationSum,
+            'outdoor_population' => $outdoorPopulationSum,
         ];
 
         $plants = $query
@@ -283,12 +298,19 @@ $sortColumns = [
 
     private function savePlant(Plant $plant, Request $request): void
     {
+        $locationTypes = array_values(array_unique(array_filter(
+            (array) $request->input('location_type', []),
+            fn ($location) => in_array($location, ['greenhouse', 'outdoor'], true)
+        )));
+        $request->merge(['location_type' => $locationTypes]);
+
         $validated = $request->validate([
             'category_id' => ['required', 'exists:categories,id'],
-            'location_type' => ['required', 'in:greenhouse,outdoor,both,collection'],
+            'location_type' => ['required', 'array', 'min:1'],
+            'location_type.*' => ['required', Rule::in(['greenhouse', 'outdoor'])],
             'population' => ['nullable', 'integer', 'min:0'],
-            'greenhouse_population' => ['required_if:location_type,greenhouse,both', 'nullable', 'integer', 'min:0'],
-            'outdoor_population' => ['required_if:location_type,outdoor,both,collection', 'nullable', 'integer', 'min:0'],
+            'greenhouse_population' => ['nullable', 'integer', 'min:0'],
+            'outdoor_population' => ['nullable', 'integer', 'min:0'],
             'name' => ['required', 'string', 'max:255'],
             'kingdom' => ['required', 'string', 'max:255'],
             'latin_name' => ['required', 'string', 'max:255'],
@@ -312,9 +334,9 @@ $sortColumns = [
             $validated['greenhouse_population'] = $plant->greenhouse_population;
             $validated['outdoor_population'] = $plant->outdoor_population;
         }
-        if ($validated['location_type'] === 'collection') {
-            $validated['location_type'] = 'outdoor';
-        }
+        $validated['location_type'] = count($validated['location_type']) === 2
+            ? 'both'
+            : $validated['location_type'][0];
         if (! $plant->exists) {
             $validated['greenhouse_population'] = (int) ($validated['greenhouse_population'] ?? 0);
             $validated['outdoor_population'] = (int) ($validated['outdoor_population'] ?? 0);
