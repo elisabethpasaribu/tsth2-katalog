@@ -24,5 +24,5 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::post('/plants/{plant}/population', [AdminPlantController::class, 'updatePopulation'])->name('plants.population.update');
     
     // Route CRUD untuk Kategori (Tambahkan di sini)
-    Route::resource('categories', AdminCategoryController::class)->except(['create', 'show', 'destroy']);
+    Route::resource('categories', AdminCategoryController::class)->except(['create', 'show']);
 });
